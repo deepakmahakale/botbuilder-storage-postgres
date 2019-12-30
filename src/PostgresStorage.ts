@@ -11,7 +11,10 @@ import { Storage, StoreItems } from "botbuilder";
 import { Sequelize, Model, DataTypes, Op } from "sequelize";
 
 export interface PostgresStorageConfig {
-  uri: string;
+  database: string;
+  username: string;
+  password: string;
+  host: string;
   collection?: string;
   logging?: boolean | ((sql: string, timing?: number) => void);
 }
@@ -25,8 +28,14 @@ export class PostgresStorageError extends Error {
   public static readonly NO_CONFIG_ERROR: PostgresStorageError = new PostgresStorageError(
     "PostgresStorageConfig is required."
   );
-  public static readonly NO_URI_ERROR: PostgresStorageError = new PostgresStorageError(
-    "PostgresStorageConfig.uri is required."
+  public static readonly NO_DATABASE_ERROR: PostgresStorageError = new PostgresStorageError(
+    "PostgresStorageConfig.database is required."
+  );
+  public static readonly NO_USERNAME_ERROR: PostgresStorageError = new PostgresStorageError(
+    "PostgresStorageConfig.username is required."
+  );
+  public static readonly NO_HOST_ERROR: PostgresStorageError = new PostgresStorageError(
+    "PostgresStorageConfig.host is required."
   );
 }
 
@@ -51,8 +60,16 @@ export class PostgresStorage implements Storage {
       throw PostgresStorageError.NO_CONFIG_ERROR;
     }
 
-    if (!config.uri || config.uri.trim() === "") {
-      throw PostgresStorageError.NO_URI_ERROR;
+    if (!config.database || config.database.trim() === "") {
+      throw PostgresStorageError.NO_DATABASE_ERROR;
+    }
+
+    if (!config.username || config.username.trim() === "") {
+      throw PostgresStorageError.NO_USERNAME_ERROR;
+    }
+
+    if (!config.host || config.host.trim() === "") {
+      throw PostgresStorageError.NO_HOST_ERROR;
     }
 
     if (!config.collection || config.collection.trim() == "") {
@@ -63,8 +80,8 @@ export class PostgresStorage implements Storage {
   }
 
   public async connect(): Promise<Sequelize> {
-    const sequelize = new Sequelize(this.config.uri, {
-      // ...options
+    const sequelize = new Sequelize(this.config.database, this.config.username, this.config.password, {
+      host: this.config.host,
       dialect: "postgres",
       pool: {
         max: 10,
